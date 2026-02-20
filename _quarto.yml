@@ -1,0 +1,18 @@
+project:
+  type: website
+  output-dir: _site
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-tools: true
+    embed-resources: true
+    df-print: paged
+
+execute:
+  warning: false
+  message: false
+  cache: true

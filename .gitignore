@@ -1,0 +1,19 @@
+# R history and workspace
+.Rhistory
+.RData
+.Rproj.user/
+
+# renv - library and staging are not tracked (restored from lockfile)
+renv/library/
+renv/staging/
+
+# Quarto output
+_site/
+*.html
+*_files/
+
+# Outputs (reproducible from code)
+outputs/
+
+# macOS
+.DS_Store
