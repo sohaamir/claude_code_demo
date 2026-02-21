@@ -157,6 +157,6 @@ quarto render
 
 ## Contact
 
-**Lead Researcher:** [Name]
-**Email:** [email@institution.edu]
-**Institution:** [Institution name]
+**Lead Researcher:** Aamir Sohail
+**Email:** axs2210@student.bham.ac.uk
+**Institution:** University of Birmingham
