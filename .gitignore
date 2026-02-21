@@ -17,3 +17,11 @@ outputs/
 
 # macOS
 .DS_Store
+
+/.quarto/
+
+# Claude Code local settings
+.claude/
+
+# Quarto cache
+*_cache/
