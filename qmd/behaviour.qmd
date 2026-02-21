@@ -1,0 +1,283 @@
+---
+title: "01 — Behavioural Analyses"
+author: "[Author]"
+date: today
+format: html
+---
+
+## Overview
+
+This document presents descriptive and exploratory behavioural analyses of
+human performance in the Inspection Game. Participants (employees) played 150
+trials against a computer-controlled employer, deciding to **work** or
+**shirk** each round.
+
+Two analyses are reported:
+
+1. **Summary statistics** — demographic and trial-level descriptives across
+   the full cleaned sample.
+2. **Payoff by age group and gender** — mean payoff per trial as a function
+   of age group (young vs. old) and gender.
+
+---
+
+## Setup
+
+```{r setup}
+library(tidyverse)
+library(here)
+library(janitor)
+library(patchwork)
+library(scales)
+library(knitr)
+library(kableExtra)
+library(gt)
+
+# Ensure output directories exist
+dir.create(here("outputs", "figures"), showWarnings = FALSE, recursive = TRUE)
+dir.create(here("outputs", "tables"),  showWarnings = FALSE, recursive = TRUE)
+
+# Load cleaned dataset produced by r/00_data_preparation.R
+clean <- read_csv(
+  here("data", "processed", "ig_data_clean.csv"),
+  col_types = cols(
+    id           = col_integer(),
+    group        = col_integer(),
+    choice       = col_integer(),
+    opchoice     = col_integer(),
+    payoff       = col_double(),
+    trial        = col_integer(),
+    age          = col_double(),
+    gender       = col_integer(),
+    group_label  = readr::col_factor(levels = c("young", "old")),
+    gender_label = readr::col_factor(levels = c("male", "female"))
+  )
+)
+```
+
+---
+
+## Analysis 1 — Summary Statistics
+
+Descriptive statistics for age, gender, and valid trial counts across the
+cleaned sample.
+
+```{r summary-stats}
+# ── Participant-level summary ────────────────────────────────────────────────
+participant_summary <- clean |>
+  group_by(id) |>
+  summarise(
+    age          = first(age),
+    group_label  = first(group_label),
+    gender_label = first(gender_label),
+    n_trials     = n(),
+    .groups = "drop"
+  )
+
+# ── Age: continuous summary ──────────────────────────────────────────────────
+age_summary <- participant_summary |>
+  group_by(group_label) |>
+  summarise(
+    n      = n(),
+    mean   = mean(age),
+    sd     = sd(age),
+    min    = min(age),
+    max    = max(age),
+    .groups = "drop"
+  )
+
+# ── Gender counts ────────────────────────────────────────────────────────────
+gender_summary <- participant_summary |>
+  count(group_label, gender_label) |>
+  pivot_wider(names_from = gender_label, values_from = n, values_fill = 0)
+
+# ── Trial count summary (should all be 150 post-exclusion) ──────────────────
+trial_summary <- participant_summary |>
+  summarise(
+    min_trials  = min(n_trials),
+    max_trials  = max(n_trials),
+    mean_trials = mean(n_trials)
+  )
+
+cat("Trial counts after exclusion — min:", trial_summary$min_trials,
+    "max:", trial_summary$max_trials, "\n")
+
+# ── Print tables ─────────────────────────────────────────────────────────────
+age_summary |>
+  gt() |>
+  tab_header(title = "Age Summary by Group") |>
+  fmt_number(columns = c(mean, sd), decimals = 1) |>
+  cols_label(
+    group_label = "Group",
+    n           = "N",
+    mean        = "Mean Age",
+    sd          = "SD",
+    min         = "Min",
+    max         = "Max"
+  )
+```
+
+```{r summary-gender-table}
+gender_summary |>
+  gt() |>
+  tab_header(title = "Gender Counts by Group") |>
+  cols_label(group_label = "Group")
+```
+
+```{r summary-plots}
+# ── Figure 1a: Age distribution by group ─────────────────────────────────────
+p_age <- ggplot(participant_summary, aes(x = age, fill = group_label)) +
+  geom_histogram(binwidth = 2, colour = "white", alpha = 0.85, position = "identity") +
+  facet_wrap(~group_label, ncol = 1) +
+  scale_fill_manual(values = c("young" = "#4C72B0", "old" = "#DD8452")) +
+  labs(
+    title   = "Age Distribution by Group",
+    x       = "Age (years)",
+    y       = "Count",
+    fill    = "Group"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none")
+
+# ── Figure 1b: Gender counts by group ────────────────────────────────────────
+gender_counts <- participant_summary |>
+  count(group_label, gender_label)
+
+p_gender <- ggplot(gender_counts, aes(x = group_label, y = n, fill = gender_label)) +
+  geom_col(position = "dodge", colour = "white", alpha = 0.85) +
+  scale_fill_manual(values = c("male" = "#55A868", "female" = "#C44E52")) +
+  labs(
+    title = "Gender Counts by Group",
+    x     = "Group",
+    y     = "Count",
+    fill  = "Gender"
+  ) +
+  theme_bw(base_size = 12)
+
+# ── Combine and save ──────────────────────────────────────────────────────────
+fig1 <- p_age | p_gender
+fig1
+
+ggsave(
+  here("outputs", "figures", "fig1_descriptives.png"),
+  plot   = fig1,
+  width  = 10,
+  height = 5,
+  dpi    = 300
+)
+
+# ── Save age summary table ────────────────────────────────────────────────────
+write_csv(age_summary, here("outputs", "tables", "tbl1_age_summary.csv"))
+write_csv(gender_counts, here("outputs", "tables", "tbl2_gender_counts.csv"))
+```
+
+---
+
+## Analysis 2 — Mean Payoff by Age Group and Gender
+
+Mean payoff per trial as a function of age group and gender. Missing trials
+are excluded from this analysis (i.e., only rows with a non-missing `payoff`
+value are used). Payoff is summarised at the participant level first (mean
+payoff per trial), then plotted across groups.
+
+```{r payoff-prep}
+# ── Participant-level mean payoff (excluding any missing payoff values) ───────
+payoff_by_participant <- clean |>
+  filter(!is.na(payoff)) |>
+  group_by(id, group_label, gender_label) |>
+  summarise(
+    mean_payoff = mean(payoff),
+    .groups = "drop"
+  )
+
+# ── Group-level summary for annotations ──────────────────────────────────────
+payoff_group_summary <- payoff_by_participant |>
+  group_by(group_label, gender_label) |>
+  summarise(
+    n           = n(),
+    mean        = mean(mean_payoff),
+    se          = sd(mean_payoff) / sqrt(n()),
+    .groups = "drop"
+  )
+
+payoff_group_summary |>
+  gt() |>
+  tab_header(title = "Mean Payoff per Trial by Group and Gender") |>
+  fmt_number(columns = c(mean, se), decimals = 2) |>
+  cols_label(
+    group_label  = "Group",
+    gender_label = "Gender",
+    n            = "N",
+    mean         = "Mean Payoff",
+    se           = "SE"
+  )
+```
+
+```{r payoff-plots}
+# ── Figure 2a: Payoff by age group ───────────────────────────────────────────
+p_payoff_group <- ggplot(payoff_by_participant,
+                          aes(x = group_label, y = mean_payoff, fill = group_label)) +
+  geom_violin(alpha = 0.4, colour = NA) +
+  geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.8) +
+  geom_jitter(width = 0.06, size = 1.2, alpha = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23,
+               size = 3, fill = "white", colour = "black") +
+  scale_fill_manual(values = c("young" = "#4C72B0", "old" = "#DD8452")) +
+  labs(
+    title = "Mean Payoff per Trial by Age Group",
+    x     = "Group",
+    y     = "Mean Payoff (cents)",
+    fill  = "Group"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none")
+
+# ── Figure 2b: Payoff by gender ───────────────────────────────────────────────
+p_payoff_gender <- ggplot(payoff_by_participant,
+                           aes(x = gender_label, y = mean_payoff, fill = gender_label)) +
+  geom_violin(alpha = 0.4, colour = NA) +
+  geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.8) +
+  geom_jitter(width = 0.06, size = 1.2, alpha = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23,
+               size = 3, fill = "white", colour = "black") +
+  scale_fill_manual(values = c("male" = "#55A868", "female" = "#C44E52")) +
+  labs(
+    title = "Mean Payoff per Trial by Gender",
+    x     = "Gender",
+    y     = "Mean Payoff (cents)",
+    fill  = "Gender"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none")
+
+# ── Figure 2c: Interaction — group × gender ───────────────────────────────────
+p_payoff_interaction <- ggplot(payoff_group_summary,
+                                aes(x = group_label, y = mean,
+                                    colour = gender_label, group = gender_label)) +
+  geom_point(size = 4) +
+  geom_line(linewidth = 1) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), width = 0.1) +
+  scale_colour_manual(values = c("male" = "#55A868", "female" = "#C44E52")) +
+  labs(
+    title  = "Mean Payoff: Group × Gender Interaction",
+    x      = "Group",
+    y      = "Mean Payoff ± SE (cents)",
+    colour = "Gender"
+  ) +
+  theme_bw(base_size = 12)
+
+# ── Combine and save ──────────────────────────────────────────────────────────
+fig2 <- (p_payoff_group | p_payoff_gender) / p_payoff_interaction
+fig2
+
+ggsave(
+  here("outputs", "figures", "fig2_payoff_by_group_gender.png"),
+  plot   = fig2,
+  width  = 10,
+  height = 8,
+  dpi    = 300
+)
+
+# ── Save payoff summary table ─────────────────────────────────────────────────
+write_csv(payoff_group_summary, here("outputs", "tables", "tbl3_payoff_summary.csv"))
+```
