@@ -1,6 +1,24 @@
 # SCRATCHPAD.md — Working Notes
 
-## Current Session: Initial Project Setup
+## Session 2: Environment, Data Prep, and Analyses (2026-02-21)
+
+### Completed
+- renv initialised (bare), 120 packages installed, lockfile committed
+- Data prep script written and verified: 83 excluded, 67 retained (10,050 rows)
+- behaviour.qmd written, rendered, and committed
+- All outputs saved to outputs/figures/ and outputs/tables/
+
+### Key Findings (descriptive)
+- 67 participants with complete 150 trials retained (83 excluded)
+- Participants split into "young" (group 1) and "old" (group 2)
+- Figures and tables saved to outputs/ (gitignored, reproducible from code)
+
+### Technical Note
+- scales::col_factor() masked readr::col_factor() — fixed by using readr::col_factor() explicitly in read_csv() call inside behaviour.qmd
+
+---
+
+## Session 1: Initial Project Setup
 
 ### Data Structure Notes
 - `human_ig_data.csv`: 22,248 data rows + 1 header = ~22,249 lines
