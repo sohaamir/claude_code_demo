@@ -135,28 +135,13 @@ The `behaviour.qmd` document contains two discrete analyses:
 
 ---
 
-## Reproducing the Analysis
-
-### 1. Restore the R environment
-
-Open the project in RStudio or set your working directory to the project root, then run:
-
-```r
-renv::restore()
-```
-
-### 2. Render the analysis
-
-From the terminal:
-
-```bash
-quarto render
-```
-
----
-
 ## Contact
 
-**Lead Researcher:** Aamir Sohail
-**Email:** axs2210@student.bham.ac.uk
-**Institution:** University of Birmingham
+**Lead Researcher:**
+Aamir Sohail
+
+**Email:**
+axs2210@student.bham.ac.uk
+
+**Institution:**
+University of Birmingham
