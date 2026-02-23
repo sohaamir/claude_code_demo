@@ -93,6 +93,25 @@ Claude will then execute a multi-step agentic workflow, including:
 
 ---
 
+### Step 4 — Update project config at the end of a session
+
+The project uses four **config files** to track context, plans, and progress across sessions:
+
+| File | Purpose |
+|---|---|
+| `CLAUDE.md` | Core instructions and project specification |
+| `PLANNING.md` | Planning notes and decisions |
+| `TASKS.md` | Task list and current status |
+| `SCRATCHPAD.md` | Agent working notes |
+
+At the end of each session — or whenever the project state has meaningfully changed — prompt Claude to refresh all four files at once:
+
+`update config`
+
+Claude will update all four config files to reflect the current state of the project, ensuring continuity across sessions.
+
+---
+
 ## What Gets Generated
 
 Running through the full workflow produces the following:
